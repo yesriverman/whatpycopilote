@@ -3,11 +3,28 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt   # <-- Add this decorator
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+
+@csrf_exempt
 def whatsapp_webhook(request):
     if request.method == "POST":
+        sender = None
+        incoming_message = None
+
+        # Try form data first
         sender = request.POST.get("from")
         incoming_message = request.POST.get("text")
+
+        # If empty, try JSON body
+        if not sender or not incoming_message:
+            try:
+                data = json.loads(request.body.decode("utf-8"))
+                sender = data.get("from")
+                incoming_message = data.get("text")
+            except Exception:
+                pass
 
         if sender and incoming_message:
             send_whatsapp_message(sender, f"Echo: {incoming_message}")
@@ -15,6 +32,18 @@ def whatsapp_webhook(request):
         return JsonResponse({"error": "missing data"}, status=400)
 
     return JsonResponse({"error": "invalid request"}, status=400)
+
+# def whatsapp_webhook(request):
+#     if request.method == "POST":
+#         sender = request.POST.get("from")
+#         incoming_message = request.POST.get("text")
+
+#         if sender and incoming_message:
+#             send_whatsapp_message(sender, f"Echo: {incoming_message}")
+#             return JsonResponse({"status": "message sent"})
+#         return JsonResponse({"error": "missing data"}, status=400)
+
+#     return JsonResponse({"error": "invalid request"}, status=400)
 
 
 def send_whatsapp_message(to, message):
