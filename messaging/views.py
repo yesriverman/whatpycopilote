@@ -21,25 +21,23 @@ def send_whatsapp_message(to, message):
         "type": "text",
         "text": {"body": message}
     }
+    print("➡️ Sending message to:", to)
+    print("➡️ Payload:", payload)
     response = requests.post(url, headers=headers, json=payload)
-    print("WhatsApp API response:", response.status_code, response.text)
+    print("⬅️ WhatsApp API response:", response.status_code, response.text)
     return response.json()
 
 @csrf_exempt
 def whatsapp_webhook(request):
     if request.method == "GET":
-        mode = request.GET.get("hub.mode")
-        token = request.GET.get("hub.verify_token")
-        challenge = request.GET.get("hub.challenge")
-
-        if mode == "subscribe" and token == VERIFY_TOKEN:
-            return HttpResponse(challenge)
+        if request.GET.get("hub.verify_token") == VERIFY_TOKEN:
+            return HttpResponse(request.GET.get("hub.challenge"))
         return HttpResponse("Verification failed", status=403)
 
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
-            print("Incoming payload:", data)
+            print("📩 Incoming payload:", data)
 
             entry = data.get("entry", [])[0]
             changes = entry.get("changes", [])[0]
@@ -49,20 +47,96 @@ def whatsapp_webhook(request):
             if messages:
                 msg = messages[0]
                 sender = msg.get("from")
-                text = msg.get("text", {}).get("body")
+                text = msg.get("text", {}).get("body", "")
+
+                print("👤 Sender:", sender)
+                print("📝 Text:", text)
 
                 if sender and text:
-                    # Auto‑response logic
-                    auto_reply = f"Thanks for your message: {text}"
+                    auto_reply = f"Auto-reply: {text}"
+                    print("⚙️ Preparing auto-reply:", auto_reply)
                     send_whatsapp_message(sender, auto_reply)
                     return JsonResponse({"status": "auto response sent"})
 
+            print("⚠️ No messages found in payload")
             return JsonResponse({"error": "no messages"}, status=400)
 
         except Exception as e:
+            print("❌ Error in webhook:", str(e))
             return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"error": "invalid request"}, status=400)
+
+
+
+
+
+
+# import json
+# import os
+# import requests
+# from django.http import HttpResponse, JsonResponse
+# from django.views.decorators.csrf import csrf_exempt
+
+# VERIFY_TOKEN = "soufiane_token"
+# WHATSAPP_API_URL = "https://graph.facebook.com/v17.0"
+# PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_ID")
+# ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+
+# def send_whatsapp_message(to, message):
+#     url = f"{WHATSAPP_API_URL}/{PHONE_NUMBER_ID}/messages"
+#     headers = {
+#         "Authorization": f"Bearer {ACCESS_TOKEN}",
+#         "Content-Type": "application/json"
+#     }
+#     payload = {
+#         "messaging_product": "whatsapp",
+#         "to": to,
+#         "type": "text",
+#         "text": {"body": message}
+#     }
+#     response = requests.post(url, headers=headers, json=payload)
+#     print("WhatsApp API response:", response.status_code, response.text)
+#     return response.json()
+
+# @csrf_exempt
+# def whatsapp_webhook(request):
+#     if request.method == "GET":
+#         mode = request.GET.get("hub.mode")
+#         token = request.GET.get("hub.verify_token")
+#         challenge = request.GET.get("hub.challenge")
+
+#         if mode == "subscribe" and token == VERIFY_TOKEN:
+#             return HttpResponse(challenge)
+#         return HttpResponse("Verification failed", status=403)
+
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body.decode("utf-8"))
+#             print("Incoming payload:", data)
+
+#             entry = data.get("entry", [])[0]
+#             changes = entry.get("changes", [])[0]
+#             value = changes.get("value", {})
+#             messages = value.get("messages", [])
+
+#             if messages:
+#                 msg = messages[0]
+#                 sender = msg.get("from")
+#                 text = msg.get("text", {}).get("body")
+
+#                 if sender and text:
+#                     # Auto‑response logic
+#                     auto_reply = f"Thanks for your message: {text}"
+#                     send_whatsapp_message(sender, auto_reply)
+#                     return JsonResponse({"status": "auto response sent"})
+
+#             return JsonResponse({"error": "no messages"}, status=400)
+
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=400)
+
+#     return JsonResponse({"error": "invalid request"}, status=400)
 
 
 
