@@ -7,17 +7,33 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
+
+import json
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+VERIFY_TOKEN = "soufiane_token"  # must match the token you set in Meta dashboard
+
 @csrf_exempt
 def whatsapp_webhook(request):
+    if request.method == "GET":
+        mode = request.GET.get("hub.mode")
+        token = request.GET.get("hub.verify_token")
+        challenge = request.GET.get("hub.challenge")
+
+        if mode == "subscribe" and token == VERIFY_TOKEN:
+            return HttpResponse(challenge)
+        return HttpResponse("Verification failed", status=403)
+
     if request.method == "POST":
         sender = None
         incoming_message = None
 
-        # Try form data first
+        # Try form data
         sender = request.POST.get("from")
         incoming_message = request.POST.get("text")
 
-        # If empty, try JSON body
+        # Try JSON body if form data is empty
         if not sender or not incoming_message:
             try:
                 data = json.loads(request.body.decode("utf-8"))
@@ -32,6 +48,32 @@ def whatsapp_webhook(request):
         return JsonResponse({"error": "missing data"}, status=400)
 
     return JsonResponse({"error": "invalid request"}, status=400)
+
+# @csrf_exempt
+# def whatsapp_webhook(request):
+#     if request.method == "POST":
+#         sender = None
+#         incoming_message = None
+
+#         # Try form data first
+#         sender = request.POST.get("from")
+#         incoming_message = request.POST.get("text")
+
+#         # If empty, try JSON body
+#         if not sender or not incoming_message:
+#             try:
+#                 data = json.loads(request.body.decode("utf-8"))
+#                 sender = data.get("from")
+#                 incoming_message = data.get("text")
+#             except Exception:
+#                 pass
+
+#         if sender and incoming_message:
+#             send_whatsapp_message(sender, f"Echo: {incoming_message}")
+#             return JsonResponse({"status": "message sent"})
+#         return JsonResponse({"error": "missing data"}, status=400)
+
+#     return JsonResponse({"error": "invalid request"}, status=400)
 
 # def whatsapp_webhook(request):
 #     if request.method == "POST":
