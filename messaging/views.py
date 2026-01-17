@@ -17,12 +17,15 @@ import json
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+import json
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
 VERIFY_TOKEN = "soufiane_token"
 
 @csrf_exempt
 def whatsapp_webhook(request):
     if request.method == "GET":
-        # Verification handshake
         mode = request.GET.get("hub.mode")
         token = request.GET.get("hub.verify_token")
         challenge = request.GET.get("hub.challenge")
@@ -34,7 +37,9 @@ def whatsapp_webhook(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
-            # Navigate into payload
+            print("Incoming payload:", data)  # 👀 log full payload to Render logs
+
+            # Navigate into Meta payload
             entry = data.get("entry", [])[0]
             changes = entry.get("changes", [])[0]
             value = changes.get("value", {})
@@ -46,7 +51,6 @@ def whatsapp_webhook(request):
                 text = msg.get("text", {}).get("body")
 
                 if sender and text:
-                    # Echo back the message
                     send_whatsapp_message(sender, f"Echo: {text}")
                     return JsonResponse({"status": "message sent"})
 
@@ -56,6 +60,48 @@ def whatsapp_webhook(request):
             return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"error": "invalid request"}, status=400)
+
+
+
+# VERIFY_TOKEN = "soufiane_token"
+
+# @csrf_exempt
+# def whatsapp_webhook(request):
+#     if request.method == "GET":
+#         # Verification handshake
+#         mode = request.GET.get("hub.mode")
+#         token = request.GET.get("hub.verify_token")
+#         challenge = request.GET.get("hub.challenge")
+
+#         if mode == "subscribe" and token == VERIFY_TOKEN:
+#             return HttpResponse(challenge)
+#         return HttpResponse("Verification failed", status=403)
+
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body.decode("utf-8"))
+#             # Navigate into payload
+#             entry = data.get("entry", [])[0]
+#             changes = entry.get("changes", [])[0]
+#             value = changes.get("value", {})
+#             messages = value.get("messages", [])
+
+#             if messages:
+#                 msg = messages[0]
+#                 sender = msg.get("from")
+#                 text = msg.get("text", {}).get("body")
+
+#                 if sender and text:
+#                     # Echo back the message
+#                     send_whatsapp_message(sender, f"Echo: {text}")
+#                     return JsonResponse({"status": "message sent"})
+
+#             return JsonResponse({"error": "no messages"}, status=400)
+
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=400)
+
+#     return JsonResponse({"error": "invalid request"}, status=400)
 
 # VERIFY_TOKEN = "soufiane_token"  # must match the token you set in Meta dashboard
 
