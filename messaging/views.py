@@ -39,7 +39,7 @@ def whatsapp_webhook(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
-            print("Incoming payload:", data)  # 👀 log full payload to Render logs
+            print("Incoming payload:", data)
 
             entry = data.get("entry", [])[0]
             changes = entry.get("changes", [])[0]
@@ -52,8 +52,10 @@ def whatsapp_webhook(request):
                 text = msg.get("text", {}).get("body")
 
                 if sender and text:
-                    send_whatsapp_message(sender, f"Echo: {text}")
-                    return JsonResponse({"status": "message sent"})
+                    # Auto‑response logic
+                    auto_reply = f"Thanks for your message: {text}"
+                    send_whatsapp_message(sender, auto_reply)
+                    return JsonResponse({"status": "auto response sent"})
 
             return JsonResponse({"error": "no messages"}, status=400)
 
@@ -61,6 +63,75 @@ def whatsapp_webhook(request):
             return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"error": "invalid request"}, status=400)
+
+
+
+
+
+
+# import json
+# import os
+# import requests
+# from django.http import HttpResponse, JsonResponse
+# from django.views.decorators.csrf import csrf_exempt
+
+# VERIFY_TOKEN = "soufiane_token"
+# WHATSAPP_API_URL = "https://graph.facebook.com/v17.0"
+# PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_ID")
+# ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+
+# def send_whatsapp_message(to, message):
+#     url = f"{WHATSAPP_API_URL}/{PHONE_NUMBER_ID}/messages"
+#     headers = {
+#         "Authorization": f"Bearer {ACCESS_TOKEN}",
+#         "Content-Type": "application/json"
+#     }
+#     payload = {
+#         "messaging_product": "whatsapp",
+#         "to": to,
+#         "type": "text",
+#         "text": {"body": message}
+#     }
+#     response = requests.post(url, headers=headers, json=payload)
+#     print("WhatsApp API response:", response.status_code, response.text)
+#     return response.json()
+
+# @csrf_exempt
+# def whatsapp_webhook(request):
+#     if request.method == "GET":
+#         mode = request.GET.get("hub.mode")
+#         token = request.GET.get("hub.verify_token")
+#         challenge = request.GET.get("hub.challenge")
+
+#         if mode == "subscribe" and token == VERIFY_TOKEN:
+#             return HttpResponse(challenge)
+#         return HttpResponse("Verification failed", status=403)
+
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body.decode("utf-8"))
+#             print("Incoming payload:", data)  # 👀 log full payload to Render logs
+
+#             entry = data.get("entry", [])[0]
+#             changes = entry.get("changes", [])[0]
+#             value = changes.get("value", {})
+#             messages = value.get("messages", [])
+
+#             if messages:
+#                 msg = messages[0]
+#                 sender = msg.get("from")
+#                 text = msg.get("text", {}).get("body")
+
+#                 if sender and text:
+#                     send_whatsapp_message(sender, f"Echo: {text}")
+#                     return JsonResponse({"status": "message sent"})
+
+#             return JsonResponse({"error": "no messages"}, status=400)
+
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=400)
+
+#     return JsonResponse({"error": "invalid request"}, status=400)
 
 
 
